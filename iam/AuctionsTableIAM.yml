@@ -1,0 +1,12 @@
+AuctionsTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:Query
+    - dynamodb:Scan
+    - dynamodb:GetItem
+    - dynamodb:PutItem
+    - dynamodb:UpdateItem
+    - dynamodb:DeleteItem
+  Resource:
+    - "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.dynamo_auctions_table}"
+    # - ${self:custom.AuctionsTable.arn}" da error

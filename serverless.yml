@@ -1,0 +1,61 @@
+service: auction-service
+variablesResolutionMode: 20210326
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  region: us-east-1
+  memorySize: 256
+  stage: ${opt:stage, self:custom.default_stage}
+  environment:
+    REGION: ${self:custom.region}
+    AUCTIONS_TABLE: ${self:custom.AuctionsTable.name}
+  iam:
+    role:
+      statements:
+        - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+
+resources:
+  Resources:
+    AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
+
+functions:
+  createAuction:
+    handler: src/handlers/createAuction.handler
+    events:
+      - http:
+          method: POST
+          path: /auction
+
+  getAuctions:
+    handler: src/handlers/getAuctions.handler
+    events:
+      - http:
+          method: GET
+          path: /auctions
+
+  getAuction:
+    handler: src/handlers/getAuction.handler
+    events:
+      - http:
+          method: GET
+          path: /auction/{id}
+
+custom:
+  bundle:
+    linting: false
+  app_acronym: auctions
+  default_stage: dev
+  stage: ${opt:stage, self:custom.default_stage}
+  region: ${opt:region, self:provider.region}
+  stack_name: ${self:custom.app_acronym}-${self:custom.stage}
+  dynamo_auctions_table: AuctionsTable-${self:custom.stage}
+  # dynamo_auctions_table: AuctionsTable-${self:custom.stack_name}
+  AuctionsTable:
+    name: !Ref AuctionsTable
+    arn: !GetAtt AuctionsTable.Arn
