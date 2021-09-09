@@ -9,4 +9,6 @@ AuctionsTableIAM:
     - dynamodb:DeleteItem
   Resource:
     - "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.dynamo_auctions_table}"
+    - !Join ["/", [ "arn:aws:dynamodb:${self:custom.region}:*:table/${self:custom.dynamo_auctions_table}", "index", "statusAndEndDate" ]]
     # - ${self:custom.AuctionsTable.arn}" da error
+    # - !Join ['/', [ '${self:custom.AuctionsTable.arn}', 'index', 'statusAndEndDate' ]]
