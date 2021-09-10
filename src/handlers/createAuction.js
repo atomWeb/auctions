@@ -11,6 +11,7 @@ const auctionsTable = process.env.AUCTIONS_TABLE;
 async function createAuction(event, context) {
   // const { title } = JSON.parse(event.body); // Lo hace el middleware
   const { title } = event.body;
+  const { email } = event.requestContext.authorizer;
   const now = new Date();
   // now.toLocaleString(process.env.TLOCALE) // Buscar forma de hacerlo
   // Mejor dejar en el servidor hora UTF y en el cliente mostrarlo con locale
@@ -26,6 +27,7 @@ async function createAuction(event, context) {
     highestBid: {
       amount: 0,
     },
+    seller: email,
   };
 
   try {
