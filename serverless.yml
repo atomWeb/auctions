@@ -1,5 +1,4 @@
 service: auction-service
-variablesResolutionMode: 20210326
 
 plugins:
   - serverless-bundle
@@ -11,15 +10,17 @@ provider:
   lambdaHashingVersion: 20201221
   region: us-east-1
   memorySize: 256
-  stage: ${opt:stage, self:custom.default_stage}
+  stage: ${opt:stage, 'dev'}
   environment:
     REGION: ${self:custom.region}
     AUCTIONS_TABLE: ${self:custom.AuctionsTable.name}
     TLOCALE: es-ES
+    MAIL_QUEUE_URL: ${self:custom.MailQueue.url}
   iam:
     role:
       statements:
         - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+        - ${file(iam/MailQueueIAM.yml):MailQueueIAM}
 
 resources:
   Resources:
@@ -63,17 +64,18 @@ functions:
     # events:
     #   - schedule: rate(1 minute)
 
-custom:  
+custom:
   bundle:
     linting: false
   app_acronym: auctions
-  default_stage: dev
-  stage: ${opt:stage, self:custom.default_stage}
-  region: ${opt:region, self:provider.region}  
-  stack_name: ${self:custom.app_acronym}-${self:custom.stage}
-  dynamo_auctions_table: AuctionsTable-${self:custom.stage}
-  # dynamo_auctions_table: AuctionsTable-${self:custom.stack_name}
-  authorizer: arn:aws:lambda:${self:custom.region}:${AWS::AccountId}:function:auth-service-${self:custom.stage}-auth
+  region: ${opt:region, self:provider.region}
+  stack_name: ${self:custom.app_acronym}-${self:provider.stage}
+  dynamo_auctions_table: AuctionsTable-${self:provider.stage}
+  # La almohadilla (hashtag) necesita el plugin pseudo parameters
+  authorizer: arn:aws:lambda:${self:custom.region}:#{AWS::AccountId}:function:auth-service-${self:provider.stage}-auth
   AuctionsTable:
     name: !Ref AuctionsTable
     arn: !GetAtt AuctionsTable.Arn
+  MailQueue:
+    arn: ${cf:notification-service-${self:provider.stage}.MailQueueArn}
+    url: ${cf:notification-service-${self:provider.stage}.MailQueueUrl}
