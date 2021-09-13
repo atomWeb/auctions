@@ -16,15 +16,19 @@ provider:
     AUCTIONS_TABLE: ${self:custom.AuctionsTable.name}
     TLOCALE: es-ES
     MAIL_QUEUE_URL: ${self:custom.MailQueue.url}
+    AUCTIONS_BUCKET_NAME: ${self:custom.AuctionsBucket.name}
   iam:
     role:
       statements:
         - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
         - ${file(iam/MailQueueIAM.yml):MailQueueIAM}
+        - ${file(iam/AuctionsBucketIAM.yml):AuctionsBucketIAM}
 
 resources:
   Resources:
     AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
+    AuctionsBucket: ${file(resources/AuctionsBucket.yml):AuctionsBucket}
+    AuctionsBucketPolicy: ${file(resources/AuctionsBucket.yml):AuctionsBucketPolicy}
 
 functions:
   createAuction:
@@ -33,6 +37,7 @@ functions:
       - http:
           method: POST
           path: /auction
+          cors: true
           authorizer: ${self:custom.authorizer}
 
   getAuctions:
@@ -41,6 +46,7 @@ functions:
       - http:
           method: GET
           path: /auctions
+          cors: true
           authorizer: ${self:custom.authorizer}
 
   getAuction:
@@ -49,6 +55,7 @@ functions:
       - http:
           method: GET
           path: /auction/{id}
+          cors: true
           authorizer: ${self:custom.authorizer}
 
   placeBid:
@@ -57,6 +64,7 @@ functions:
       - http:
           method: PATCH
           path: /auction/{id}/bid
+          cors: true
           authorizer: ${self:custom.authorizer}
 
   processAuctions:
@@ -64,18 +72,29 @@ functions:
     # events:
     #   - schedule: rate(1 minute)
 
+  uploadAuctionPicture:
+    handler: src/handlers/uploadAuctionPicture.handler
+    events:
+      - http:
+          method: PATCH
+          path: auction/{id}/picture
+          authorizer: ${self:custom.authorizer}
+
 custom:
-  bundle:
-    linting: false
   app_acronym: auctions
   region: ${opt:region, self:provider.region}
   stack_name: ${self:custom.app_acronym}-${self:provider.stage}
   dynamo_auctions_table: AuctionsTable-${self:provider.stage}
-  # La almohadilla (hashtag) necesita el plugin pseudo parameters
-  authorizer: arn:aws:lambda:${self:custom.region}:#{AWS::AccountId}:function:auth-service-${self:provider.stage}-auth
+  # La almohadilla (hashtag) necesita el plugin pseudo parameters OJO DEPRECATED
+  # With version v2.50.0, new variables sources ${aws:accountId} and ${aws:region} were introduced, 
+  authorizer: arn:aws:lambda:${self:custom.region}:${aws:accountId}:function:auth-service-${self:provider.stage}-auth
   AuctionsTable:
     name: !Ref AuctionsTable
     arn: !GetAtt AuctionsTable.Arn
   MailQueue:
     arn: ${cf:notification-service-${self:provider.stage}.MailQueueArn}
     url: ${cf:notification-service-${self:provider.stage}.MailQueueUrl}
+  AuctionsBucket:
+    name: auctions-bucket-nabusim-${self:provider.stage}
+  bundle:
+    linting: false
